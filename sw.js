@@ -4,12 +4,13 @@
    - Imágenes: caché con límite para no llenar el teléfono
    - Los videos NO pasan por aquí (el reproductor los pide directo para no frenar el streaming) */
 
-const VERSION = '15346ce351';
+const VERSION = 'dcc6685e0f';
 const SHELL = `sv-shell-${VERSION}`;
 const API = 'sv-api-v1';
 const IMAGES = 'sv-img-v1';
 const FONTS = 'sv-fonts-v1';
-const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './maskable-512.png', './icon.svg', './favicon-32.png', './apple-touch-icon.png', './hls.min.js'];
+const LIBS = 'sv-libs-v1';
+const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './maskable-512.png', './icon.svg', './favicon-32.png', './apple-touch-icon.png', './hls.min.js', './config.js'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll(SHELL_FILES)));
@@ -94,6 +95,16 @@ self.addEventListener('fetch', (e) => {
   if (/\.(m3u8|ts|m4s|mp4|webm|aac|vtt|mpd)(\?|$)/i.test(url.pathname)) return;
 
   if (req.mode === 'navigate' && url.origin === location.origin) { e.respondWith(networkFirstPage(e)); return; }
+  // config.js (lo edita el administrador): siempre la versión más nueva; sin internet, la guardada
+  if (url.origin === location.origin && url.pathname.endsWith('/config.js')) {
+    e.respondWith(fetch(req, { cache: 'no-store' }).then((res) => { if (res.ok) caches.open(SHELL).then((c) => c.put('./config.js', res.clone())); return res; }).catch(() => caches.match('./config.js')));
+    return;
+  }
+  // programa de inicio de sesión (Firebase): se guarda para abrir la app aunque no haya internet
+  if (url.hostname === 'www.gstatic.com' && url.pathname.startsWith('/firebasejs/')) {
+    e.respondWith(caches.open(LIBS).then(async (c) => (await c.match(req)) || fetch(req).then((res) => { if (res.ok) c.put(req, res.clone()); return res; })));
+    return;
+  }
   if (url.origin === location.origin) {
     e.respondWith(caches.match(req).then((r) => r || fetch(req)));
     return;
