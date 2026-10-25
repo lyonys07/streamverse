@@ -4,16 +4,17 @@
    - Imágenes: caché con límite para no llenar el teléfono
    - Los videos NO pasan por aquí (el reproductor los pide directo para no frenar el streaming) */
 
-const VERSION = 'dcc6685e0f';
+const VERSION = 'b8fabd35ad';
 const SHELL = `sv-shell-${VERSION}`;
 const API = 'sv-api-v1';
 const IMAGES = 'sv-img-v1';
 const FONTS = 'sv-fonts-v1';
 const LIBS = 'sv-libs-v1';
-const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './maskable-512.png', './icon.svg', './favicon-32.png', './apple-touch-icon.png', './hls.min.js', './config.js'];
+const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './maskable-512.png', './icon.svg', './favicon-32.png', './apple-touch-icon.png', './hls.min.js'];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(SHELL).then((c) => c.addAll(SHELL_FILES)));
+  // config.js lo pone el administrador una sola vez: si todavía no existe, la instalación no falla
+  e.waitUntil(caches.open(SHELL).then(async (c) => { await c.addAll(SHELL_FILES); await c.add('./config.js').catch(() => {}); }));
 });
 
 self.addEventListener('activate', (e) => {
